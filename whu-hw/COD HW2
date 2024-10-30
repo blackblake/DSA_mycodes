@@ -1,0 +1,124 @@
+2.7 
+slli x28, x28, 2   // x28 = i*4 
+add x30,x10,x28    // x30 = &(A[i])
+lw x28, 0(x30)     // x28 = A[i] 
+slli x29, x29, 2   // x29 = j*4 
+add x30,x11,x29    // x30 = &(B[j])
+lw x29, 0(x30)     // x29 = B[j] 
+add x28, x28, x29  // x29 = A[i] + B[j] 
+sw x28, 32(x11) 
+
+2.8
+f = 2*(&A)
+
+2.9
+op:001 0011  funct3:000  funct7:--  rs1:10  rd:30  imm:8
+op:001 0011  funct3:000  funct7:--  rs1:10  rd:31  imm:0
+op:010 0011  funct3:011  funct7:--  rs1:31  rs2:30  imm:0
+op:000 0011  funct3:011  funct7:--  rs1:30  rd:30   imm:0
+op:011 0011  funct3:000  funct7:000 0000  rs1:30  rs2:31  rd:5
+
+2.10
+//2.10.1
+0x5000000000000000
+//2.10.2
+溢出
+//2.10.3
+0xB000000000000000
+//2.10.4
+不溢出
+//2.10.5
+0xD000000000000000
+//2.10.6
+溢出
+
+2.22
+//2.22.1
+[0x1ff00000, 0x200ffffe] 
+//2.22.2
+[0x1ffff000, 0x20000ffe]
+
+2.23
+//2.23.1
+UJ型指令格式
+//2.23.2
+loop:
+addi x29,x29,-1  //x29-1
+bgt  x29,x0,loop //if x29-1>0,goto loop
+addi x29,x29,1   //if not goto loop,restore x29
+
+2.24
+//2.24.1
+20
+//2.24.2
+x5=0;x6=10;
+while(x6!=0){
+	x5+=2;
+	x6--;
+}
+//2.24.3
+4*N+1条
+//2.24.4
+x5=0;x6=10;
+while(x6>=0){
+	x5+=2;
+	x6--;
+}
+
+2.29
+fib: 
+    // if(n == 0) { return 0; }
+    beq x10, x0, done      // if x10 == x0 (n == 0), branch to done, return 0
+
+    // else if(n == 1) { return 1; }
+    addi x5, x0, 1         // x5 = 1
+    beq x10, x5, done      // if x10 == x5 (n == 1), return 1
+
+    // else { return fib(n-1) + fib(n-2); }
+    addi x2, x2, -8        // x2 = x2 - 8 (stack pointer), allocate space for temp variables
+
+    // do fib(n-1) 
+    sw x1, 0(x2)           // store return address (x1) at x2
+    sw x10, 4(x2)          // store n (x10) at x2 + 4
+    addi x10, x10, -1      // n = n - 1
+    jal x1, fib            // call fib(n-1)
+
+    lw x5, 4(x2)           // restore n (x5 = n)
+    sw x10, 4(x2)          // store the return value fib(n-1)
+
+    // do fib(n-2)
+    addi x10, x5, -2       // x10 = n - 2
+    jal x1, fib            // call fib(n-2)
+    lw x5, 4(x2)           // restore the return value fib(n-1)
+    add x10, x10, x5       // return fib(n-1) + fib(n-2)
+    lw x1, 0(x2)           // restore return address (x1)
+
+    addi x2, x2, 8         // add back stack pointer (x2)
+
+done:
+    ret
+
+
+2.30
+假设n=3:
+
+1.调用fib(3)
+	栈指针x2减8,变为0x7ffffff4;
+	返回地址x1存入 0x7ffffff4;
+	原来的参数n=3存入 0x7ffffff8;
+
+2. fib(3)递归调用fib(2)
+	栈指针x2减8,变为0x7fffffec;
+	x1存入 0x7fffffec;
+	n=2存入 0x7ffffff0;
+
+3. fib(2)递归调用fib(1)
+	直接返回1
+
+4. fib(2)递归调用fib(0)
+	直接返回0
+
+5. fib(2)内的两个递归fib(1),fib(0)都已完成,栈指针+8变为0x7ffffff4;
+然后,fib(3)递归调用fib(1):
+	直接返回1
+fib(3)的递归结束,栈指针+8变为0x7ffffffc;
